@@ -1,13 +1,15 @@
 import os
+import io
 import time
 import urllib.request
 import cv2
 import numpy as np
 import onnxruntime
+from PIL import Image
+from PIL.ExifTags import TAGS
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
-import io
 import tempfile
 
 MODEL_URL = (
@@ -17,6 +19,12 @@ MODEL_URL = (
     "birefnet_1024x1024.onnx"
 )
 MODEL_PATH = "birefnet_1024x1024.onnx"
+
+ORIENTATION_TO_ROTATION = {
+    3: cv2.ROTATE_180,
+    6: cv2.ROTATE_90_CLOCKWISE,
+    8: cv2.ROTATE_90_COUNTERCLOCKWISE,
+}
 
 
 def get_drive_service():
@@ -43,12 +51,30 @@ def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
 
 
+def get_orientation(raw_bytes):
+    try:
+        img = Image.open(io.BytesIO(raw_bytes))
+        exif = img._getexif()
+        if exif:
+            for tag_id, value in exif.items():
+                if TAGS.get(tag_id) == "Orientation":
+                    return value
+    except Exception:
+        pass
+    return 1
+
+
+def apply_exif_rotation(image, orientation):
+    if orientation not in ORIENTATION_TO_ROTATION:
+        return image
+    return cv2.rotate(image, ORIENTATION_TO_ROTATION[orientation])
+
+
 def run_birefnet(session, image):
     print("Preparing image...", flush=True)
     input_shape = session.get_inputs()[0].shape
     input_width = int(input_shape[3])
     input_height = int(input_shape[2])
-    print(f"Model input: {input_width}x{input_height}", flush=True)
 
     input_image = cv2.resize(image, (input_width, input_height))
     input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
@@ -108,7 +134,6 @@ def list_images(service, folder_id):
     res = service.files().list(
         q=query, fields="files(id, name)"
     ).execute()
-    # _white.jpg 済みはスキップ
     files = [
         f for f in res.get("files", [])
         if not f["name"].endswith("_white.jpg")
@@ -116,7 +141,7 @@ def list_images(service, folder_id):
     return files
 
 
-def download_image(service, file_id):
+def download_image_raw(service, file_id):
     request = service.files().get_media(fileId=file_id)
     buf = io.BytesIO()
     downloader = MediaIoBaseDownload(buf, request)
@@ -124,9 +149,7 @@ def download_image(service, file_id):
     while not done:
         _, done = downloader.next_chunk()
     buf.seek(0)
-    arr = np.frombuffer(buf.read(), dtype=np.uint8)
-    image = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-    return image
+    return buf.read()
 
 
 def upload_image(service, folder_id, filename, image):
@@ -172,10 +195,20 @@ def main():
             out_name = base + "_white.jpg"
 
             print(f"\n処理中：{name}", flush=True)
-            image = download_image(service, f["id"])
+
+            raw = download_image_raw(service, f["id"])
+
+            orientation = get_orientation(raw)
+            if orientation in ORIENTATION_TO_ROTATION:
+                print(f"EXIF回転補正：Orientation={orientation}", flush=True)
+
+            arr = np.frombuffer(raw, dtype=np.uint8)
+            image = cv2.imdecode(arr, cv2.IMREAD_COLOR)
             if image is None:
                 print(f"エラー：画像を読み込めませんでした：{name}", flush=True)
                 continue
+
+            image = apply_exif_rotation(image, orientation)
 
             mask = run_birefnet(session, image)
             result = make_white_background(image, mask)
