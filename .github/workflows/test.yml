@@ -27,22 +27,14 @@ jobs:
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
         run: |
           python -c "
-          import os, urllib.request, urllib.parse, json
-          data = urllib.parse.urlencode({
-              'client_id': os.environ['GOOGLE_CLIENT_ID'],
-              'client_secret': os.environ['GOOGLE_CLIENT_SECRET'],
-              'refresh_token': os.environ['GOOGLE_REFRESH_TOKEN'],
-              'grant_type': 'refresh_token',
-          }).encode()
-          req = urllib.request.Request('https://oauth2.googleapis.com/token', data=data, method='POST')
-          try:
-              with urllib.request.urlopen(req) as r:
-                  res = json.loads(r.read())
-                  print('SUCCESS: access_token取得OK')
-                  print('scope:', res.get('scope'))
-          except urllib.error.HTTPError as e:
-              body = json.loads(e.read())
-              print('FAILED:', body)
+          import os
+          cid = os.environ['GOOGLE_CLIENT_ID']
+          cs = os.environ['GOOGLE_CLIENT_SECRET']
+          rt = os.environ['GOOGLE_REFRESH_TOKEN']
+          print('CLIENT_ID末尾:', cid[-20:])
+          print('CLIENT_SECRET先頭:', cs[:6])
+          print('REFRESH_TOKEN先頭:', rt[:10])
+          print('REFRESH_TOKEN末尾:', rt[-10:])
           "
 
       - name: Run BiRefNet
