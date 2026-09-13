@@ -22,11 +22,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run BiRefNet
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          DRIVE_WHITE_SOURCE_ID: ${{ secrets.DRIVE_WHITE_SOURCE_ID }}
         run: |
           python -u process.py
-
-      - name: Upload result
-        uses: actions/upload-artifact@v4
-        with:
-          name: birefnet-result
-          path: output/
