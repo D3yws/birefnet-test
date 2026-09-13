@@ -4,9 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       job:
-        description: "実行するジョブ (process / rotate_fix)"
+        description: "実行するジョブ"
         required: true
         default: "process"
+        type: choice
+        options:
+          - process
+          - rotate_fix
 
 jobs:
   process:
