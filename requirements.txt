@@ -3,4 +3,3 @@ opencv-python-headless
 numpy
 google-auth
 google-api-python-client
-pillow
