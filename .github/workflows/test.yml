@@ -2,19 +2,9 @@ name: BiRefNet Test
 
 on:
   workflow_dispatch:
-    inputs:
-      job:
-        description: "実行するジョブ"
-        required: true
-        default: "process"
-        type: choice
-        options:
-          - process
-          - rotate_fix
 
 jobs:
   process:
-    if: ${{ github.event.inputs.job == 'process' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -38,30 +28,3 @@ jobs:
           DRIVE_WHITE_SOURCE_ID: ${{ secrets.DRIVE_WHITE_SOURCE_ID }}
         run: |
           python -u process.py
-
-  rotate_fix:
-    if: ${{ github.event.inputs.job == 'rotate_fix' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pillow
-
-      - name: Run rotate_fix
-        env:
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
-          DRIVE_WHITE_SOURCE_ID: ${{ secrets.DRIVE_WHITE_SOURCE_ID }}
-        run: |
-          python -u rotate_fix.py
