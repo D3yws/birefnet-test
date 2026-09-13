@@ -6,7 +6,6 @@ on:
 jobs:
   process:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,32 +27,23 @@ jobs:
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
         run: |
           python -c "
-import os
-import urllib.request
-import urllib.parse
-import json
-
-data = urllib.parse.urlencode({
-    'client_id': os.environ['GOOGLE_CLIENT_ID'],
-    'client_secret': os.environ['GOOGLE_CLIENT_SECRET'],
-    'refresh_token': os.environ['GOOGLE_REFRESH_TOKEN'],
-    'grant_type': 'refresh_token',
-}).encode()
-
-req = urllib.request.Request(
-    'https://oauth2.googleapis.com/token',
-    data=data,
-    method='POST',
-)
-try:
-    with urllib.request.urlopen(req) as r:
-        res = json.loads(r.read())
-        print('SUCCESS: access_token取得OK')
-        print('scope:', res.get('scope'))
-except urllib.error.HTTPError as e:
-    body = json.loads(e.read())
-    print('FAILED:', body)
-"
+          import os, urllib.request, urllib.parse, json
+          data = urllib.parse.urlencode({
+              'client_id': os.environ['GOOGLE_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_REFRESH_TOKEN'],
+              'grant_type': 'refresh_token',
+          }).encode()
+          req = urllib.request.Request('https://oauth2.googleapis.com/token', data=data, method='POST')
+          try:
+              with urllib.request.urlopen(req) as r:
+                  res = json.loads(r.read())
+                  print('SUCCESS: access_token取得OK')
+                  print('scope:', res.get('scope'))
+          except urllib.error.HTTPError as e:
+              body = json.loads(e.read())
+              print('FAILED:', body)
+          "
 
       - name: Run BiRefNet
         env:
